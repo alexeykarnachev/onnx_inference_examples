@@ -86,7 +86,8 @@ def run_inference(context, model_name=_MODEL_NAME, url=_URL, model_version=_MODE
         print(i)
     end = datetime.datetime.now()
     delta = end - start
-    print((delta.microseconds / 1000) / _N_REPEATS)
+    time_per_call = delta / _N_REPEATS
+    print(time_per_call)
 
 
 if __name__ == '__main__':
