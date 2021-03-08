@@ -63,44 +63,44 @@ class GPT2Onnx:
         # Continue inference after the first step (using past):
         generated_input_ids = []
 
-        for i_step in range(1):
-            next_token_logits = ort_outputs[0][:, -1, :]
+        for i_step in range(24):
+            next_token_logits = ort_outputs[0][:, -1, :].double()
 
             _modify_next_token_logits(next_token_logits, ignored_input_ids=None, temperature=0.7, top_k=50, top_p=1.0)
 
             next_input_ids = _sample_next_input_ids(next_token_logits)
             generated_input_ids.append(next_input_ids)
 
-#            past = ort_outputs[1:]
-#
-#            input_ids = next_input_ids[:, None]
-#            past_sequence_length = past[0].size(3)
-#            new_seq_len = 1 + past_sequence_length
-#
-#            position_ids = torch.tensor(
-#                [new_seq_len - 1], dtype=torch.long, device=self._device).repeat((n_candidates, 1))
-#            attention_mask = torch.ones((n_candidates, new_seq_len), dtype=self._torch_float_type, device=self._device)
-#
-#            gpt2_inputs = Gpt2Inputs(input_ids, position_ids, attention_mask, past)
-#            output_shapes = Gpt2Helper.get_output_shapes(
-#                batch_size=n_candidates,
-#                past_sequence_length=past_sequence_length,
-#                sequence_length=1,
-#                config=self._gpt2_config)
-#
-#            ort_outputs = Gpt2Helper.onnxruntime_inference_with_binded_io(
-#                ort_session=self._session,
-#                inputs=gpt2_inputs,
-#                output_buffers=output_buffers,
-#                output_shapes=output_shapes,
-#                return_numpy=False)
-#
-#        generated_input_ids = torch.stack(generated_input_ids)
-#
-#        generated_input_ids = generated_input_ids.cpu().numpy().T.tolist()
-#        decoded_candidates = self._tokenizer.batch_decode(generated_input_ids)
-#
-#        return decoded_candidates
+            past = ort_outputs[1:]
+
+            input_ids = next_input_ids[:, None]
+            past_sequence_length = past[0].size(3)
+            new_seq_len = 1 + past_sequence_length
+
+            position_ids = torch.tensor(
+                [new_seq_len - 1], dtype=torch.long, device=self._device).repeat((n_candidates, 1))
+            attention_mask = torch.ones((n_candidates, new_seq_len), dtype=self._torch_float_type, device=self._device)
+
+            gpt2_inputs = Gpt2Inputs(input_ids, position_ids, attention_mask, past)
+            output_shapes = Gpt2Helper.get_output_shapes(
+                batch_size=n_candidates,
+                past_sequence_length=past_sequence_length,
+                sequence_length=1,
+                config=self._gpt2_config)
+
+            ort_outputs = Gpt2Helper.onnxruntime_inference_with_binded_io(
+                ort_session=self._session,
+                inputs=gpt2_inputs,
+                output_buffers=output_buffers,
+                output_shapes=output_shapes,
+                return_numpy=False)
+
+        generated_input_ids = torch.stack(generated_input_ids)
+
+        generated_input_ids = generated_input_ids.cpu().numpy().T.tolist()
+        decoded_candidates = self._tokenizer.batch_decode(generated_input_ids)
+
+        return decoded_candidates
 
     def _prepare_prefix(self, context):
         assert isinstance(context, collections.abc.Sequence) and not isinstance(context, str)
@@ -139,15 +139,17 @@ def _modify_next_token_logits(next_token_logits, ignored_input_ids, temperature,
 
 
 if __name__ == '__main__':
-    model = GPT2Onnx('/workspace/triton_client/gpt2-large/gpt2-large_past_fp16/gpt2-large_past_fp16.onnx', 'gpt2-large',
-            '->', 51, 50, True, 0)
+    model = GPT2Onnx('/workspace/onnx_inference_examples/gpt2-large/gpt2-large_past_fp16/gpt2-large_past_fp16.onnx', 'gpt2-large',
+            '->', 50, 25, True, 0)
     context = ["What is your name?", "My name is Alex", "How old are you?"] * 100
     n_repeats = 1000
     n_candidates = 8
     start_time = datetime.datetime.now()
     for i in range(n_repeats):
-        model.generate_candidates(context, n_candidates)
+        candidates = model.generate_candidates(context, n_candidates)
         print(i)
+        print(candidates[0])
+
 
     end_time = datetime.datetime.now()
     delta = (end_time - start_time) / n_repeats

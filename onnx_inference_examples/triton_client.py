@@ -1,7 +1,8 @@
+import datetime
+
 import numpy as np
 from transformers import GPT2TokenizerFast
 import tritonhttpclient
-import datetime
 
 _tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
 _MODEL_NAME = 'distilgpt2_past'

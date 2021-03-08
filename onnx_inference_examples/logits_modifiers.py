@@ -1,9 +1,7 @@
 import abc
-
 from typing import Optional, Sequence
 
 import torch
-
 from transformers import top_k_top_p_filtering
 
 _MINUS_INF = -float("Inf")
